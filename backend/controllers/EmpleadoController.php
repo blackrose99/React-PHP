@@ -2,147 +2,70 @@
 require '../models/Empleado.php';
 
 class EmpleadoController {
-    // Método para obtener todos los empleados
-    public function getEmpleados() {
-        $empleado = new Empleado();
-        $empleados = $empleado->getAllEmpleados();
+    private $empleadoModel;
+
+    public function __construct() {
+        $this->empleadoModel = new Empleado();
+    }
+
+    // Método para insertar un nuevo empleado
+    public function insertarEmpleado($datosEmpleado) {
+        $this->empleadoModel->setTipoDocumento($datosEmpleado['tipoDocumento']);
+        $this->empleadoModel->setNombre($datosEmpleado['nombre']);
+        $this->empleadoModel->setApellido($datosEmpleado['apellido']);
+        $this->empleadoModel->setEmail($datosEmpleado['email']);
+        $this->empleadoModel->setTelefono($datosEmpleado['telefono']);
         
-        if ($empleados) {
-            $response = array_map(function($empleado) {
-                return [
-                    'id' => $empleado['id'],
-                    'tipoDocumento' => $empleado['tipoDocumento'],
-                    'nombre' => $empleado['nombre'],
-                    'apellido' => $empleado['apellido'],
-                    'email' => $empleado['email'],
-                    'telefono' => $empleado['telefono']
-                ];
-            }, $empleados);
-
-            $this->sendResponse(200, 'Empleados encontrados', $response);
+        if ($this->empleadoModel->insertarEmpleado()) {
+            return ['success' => true, 'message' => 'Empleado insertado correctamente'];
         } else {
-            $this->sendResponse(404, 'No se encontraron empleados.');
+            return ['success' => false, 'message' => 'Error al insertar empleado'];
         }
     }
 
-    // Método para obtener un empleado por su ID
-    public function getEmpleado($id) {
-        $empleado = new Empleado();
-        $empleadoData = $empleado->getEmpleadoById($id);
+    // Método para editar un empleado
+    public function editarEmpleado($id, $datosEmpleado) {
+        $this->empleadoModel->setId($id);
+        $this->empleadoModel->setTipoDocumento($datosEmpleado['tipoDocumento']);
+        $this->empleadoModel->setNombre($datosEmpleado['nombre']);
+        $this->empleadoModel->setApellido($datosEmpleado['apellido']);
+        $this->empleadoModel->setEmail($datosEmpleado['email']);
+        $this->empleadoModel->setTelefono($datosEmpleado['telefono']);
         
-        if ($empleadoData) {
-            $response = [
-                'id' => $empleadoData['id'],
-                'tipoDocumento' => $empleadoData['tipoDocumento'],
-                'nombre' => $empleadoData['nombre'],
-                'apellido' => $empleadoData['apellido'],
-                'email' => $empleadoData['email'],
-                'telefono' => $empleadoData['telefono']
-            ];
-            $this->sendResponse(200, 'Empleado encontrado', $response);
+        if ($this->empleadoModel->actualizarEmpleado()) {
+            return ['success' => true, 'message' => 'Empleado actualizado correctamente'];
         } else {
-            $this->sendResponse(404, 'Empleado no encontrado.');
-        }
-    }
-
-    // Método para crear un nuevo empleado
-    public function createEmpleado() {
-        $data = json_decode(file_get_contents("php://input"));
-
-        if (!$data || !isset($data->nombre) || !isset($data->apellido) || !isset($data->email) || !isset($data->telefono) || !isset($data->tipoDocumento)) {
-            $this->sendResponse(400, 'Datos incompletos');
-            return;
-        }
-
-        $empleado = new Empleado();
-        $empleado->setNombre($data->nombre);
-        $empleado->setApellido($data->apellido);
-        $empleado->setEmail($data->email);
-        $empleado->setTelefono($data->telefono);
-        $empleado->setTipoDocumento($data->tipoDocumento);
-
-        if ($empleado->insertarEmpleado()) {
-            $this->sendResponse(201, 'Empleado creado');
-        } else {
-            $this->sendResponse(500, 'Error al crear empleado');
-        }
-    }
-
-    // Método para actualizar un empleado
-    public function updateEmpleado($id) {
-        $data = json_decode(file_get_contents("php://input"));
-
-        if (!$data || !isset($data->nombre) || !isset($data->apellido) || !isset($data->email) || !isset($data->telefono) || !isset($data->tipoDocumento)) {
-            $this->sendResponse(400, 'Datos incompletos');
-            return;
-        }
-
-        $empleado = new Empleado();
-        $empleado->setId($id);
-        $empleado->setNombre($data->nombre);
-        $empleado->setApellido($data->apellido);
-        $empleado->setEmail($data->email);
-        $empleado->setTelefono($data->telefono);
-        $empleado->setTipoDocumento($data->tipoDocumento);
-
-        if ($empleado->actualizarEmpleado()) {
-            $this->sendResponse(200, 'Empleado actualizado');
-        } else {
-            $this->sendResponse(500, 'Error al actualizar empleado');
+            return ['success' => false, 'message' => 'Error al actualizar empleado'];
         }
     }
 
     // Método para eliminar un empleado
-    public function deleteEmpleado($id) {
-        $empleado = new Empleado();
-        if ($empleado->eliminarEmpleado($id)) {
-            $this->sendResponse(200, 'Empleado eliminado');
+    public function eliminarEmpleado($id) {
+        if ($this->empleadoModel->eliminarEmpleado($id)) {
+            return ['success' => true, 'message' => 'Empleado eliminado correctamente'];
         } else {
-            $this->sendResponse(500, 'Error al eliminar empleado');
+            return ['success' => false, 'message' => 'Error al eliminar empleado'];
         }
     }
 
-    // Método para enviar la respuesta al cliente
-    private function sendResponse($status, $message, $data = null) {
-        http_response_code($status);
-        $response = [
-            'status' => $status >= 200 && $status < 300 ? 'success' : 'error',
-            'message' => $message
-        ];
-        if ($data !== null) {
-            $response['data'] = $data;
-        }
-        echo json_encode($response);
-    }
-}
-
-// Manejo de las solicitudes
-$controller = new EmpleadoController();
-$request_method = $_SERVER["REQUEST_METHOD"];
-
-switch($request_method) {
-    case 'GET':
-        if (!empty($_GET["id"])) {
-            $id = intval($_GET["id"]);
-            $controller->getEmpleado($id);
+    // Método para listar un empleado por su ID
+    public function obtenerEmpleadoPorId($id) {
+        $empleado = $this->empleadoModel->getEmpleadoById($id);
+        if ($empleado) {
+            return ['success' => true, 'data' => $empleado];
         } else {
-            $controller->getEmpleados();
+            return ['success' => false, 'message' => 'No se encontró ningún empleado con el ID especificado'];
         }
-        break;
-    case 'POST':
-        $controller->createEmpleado();
-        break;
-    case 'PUT':
-        parse_str(file_get_contents("php://input"), $_PUT);
-        $id = intval($_GET["id"]);
-        $controller->updateEmpleado($id);
-        break;
-    case 'DELETE':
-        $id = intval($_GET["id"]);
-        $controller->deleteEmpleado($id);
-        break;
-    default:
-        header("HTTP/1.0 405 Method Not Allowed");
-        break;
+    }
+
+    // Método para listar todos los empleados
+    public function obtenerTodosLosEmpleados() {
+        $empleados = $this->empleadoModel->getAllEmpleados();
+        if ($empleados) {
+            return ['success' => true, 'data' => $empleados];
+        } else {
+            return ['success' => false, 'message' => 'No se encontraron empleados'];
+        }
+    }
 }
 ?>

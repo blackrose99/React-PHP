@@ -1,12 +1,12 @@
 <?php
-require_once('../config/db.php');
+require '../config/db.php';
 
 class Empleado {
     private $pdo;
 
     // Atributos
     private $id;
-    private $tipoDocumento; // Nuevo campo
+    private $tipoDocumento;
     private $nombre;
     private $apellido;
     private $email;
